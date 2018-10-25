@@ -28,11 +28,6 @@ function [] = gera_toys()
     roda_metodos(rodadas , opcoes , @mop5         , 'MOP5');
     roda_metodos(rodadas , opcoes , @vu1          , 'VU1');
 
-    % Gráfico
-    rodadas = 200;
-    gera_pontos_2d(0:0.015:1, @hil1, 'Hil1');
-    roda_metodos(rodadas, opcoes, @hil1, 'Hil1', true);
-
     % Problemas com vários n
     rodadas = 20;
     for n = [200 500 1000 2000]
@@ -48,6 +43,31 @@ function [] = gera_toys()
         opcoes.usar_pareto = true;
         roda_metodos(rodadas , opcoes , @() mmr5(n) , ['MMR5_n' , num2str(n)]);
     end
+
+    % Gráfico
+    rodadas = 200;
+    opcoes.epsilon = 1e-8;
+
+    opcoes.usar_cauchy  = true;
+    opcoes.usar_central = false;
+    opcoes.usar_linear  = false;
+    opcoes.usar_pareto  = false;
+    gera_pontos_2d(-1:0.03:1, @ff1, 'FF1');
+    roda_metodos(rodadas, opcoes, @ff1, 'FF1', true);
+
+    opcoes.usar_cauchy  = false;
+    opcoes.usar_central = false;
+    opcoes.usar_linear  = true;
+    opcoes.usar_pareto  = false;
+    gera_pontos_2d(0:0.015:1, @hil1, 'Hil1');
+    roda_metodos(rodadas, opcoes, @hil1, 'Hil1', true);
+
+    opcoes.usar_cauchy  = false;
+    opcoes.usar_central = true;
+    opcoes.usar_linear  = false;
+    opcoes.usar_pareto  = false;
+    gera_pontos_2d(-3:0.09:3, @vu1, 'VU1');
+    roda_metodos(rodadas, opcoes, @vu1, 'VU1', true);
 end
 
 function [f, Jf, x0, lx, ux] = fds(n)
@@ -185,6 +205,7 @@ function [] = gera_pontos_2d(malha, problema, nome)
     end
     fclose(file);
 end
+
 function [] = roda_metodos(rodadas, opcoes, problema, nome, grafico)
     if nargin < 5
         grafico = false;
@@ -227,10 +248,19 @@ function [] = roda_metodos(rodadas, opcoes, problema, nome, grafico)
     pareto.x0s = [];
 
     if grafico
-        saida = pareto.saida;
+        if opcoes.usar_cauchy
+            saida = cauchy.saida;
+        elseif opcoes.usar_central
+            saida = central.saida;
+        elseif opcoes.usar_linear
+            saida = linear.saida;
+        elseif opcoes.usar_pareto
+            saida = pareto.saida;
+        end
     else
         saida = ['gerado/toy_' nome '.txt'];
     end
+
     if ~exist(saida, 'file')
         mostra([cor(37, 1) 'Gerando ' saida cor()]);
     else
@@ -322,10 +352,18 @@ function [] = roda_metodos(rodadas, opcoes, problema, nome, grafico)
     end
 
     if grafico
-        imprime_saida(f, cauchy.x0s, cauchy.xs, cauchy.saida);
-        imprime_saida(f, central.x0s, central.xs, central.saida);
-        imprime_saida(f, linear.x0s, linear.xs, linear.saida);
-        imprime_saida(f, pareto.x0s, pareto.xs, pareto.saida);
+        if opcoes.usar_cauchy
+            imprime_saida(f, cauchy.x0s, cauchy.xs, cauchy.saida);
+        end
+        if opcoes.usar_central
+            imprime_saida(f, central.x0s, central.xs, central.saida);
+        end
+        if opcoes.usar_linear
+            imprime_saida(f, linear.x0s, linear.xs, linear.saida);
+        end
+        if opcoes.usar_pareto
+            imprime_saida(f, pareto.x0s, pareto.xs, pareto.saida);
+        end
     else
         sucessos = [cauchy.sucesso central.sucesso linear.sucesso pareto.sucesso];
         evalfs = [mediana(cauchy.evalf) mediana(central.evalf) mediana(linear.evalf) mediana(pareto.evalf)];
@@ -346,8 +384,8 @@ end
 function [] = imprime_saida(f, x0s, xs, saida)
     file = fopen(saida, 'w');
     for k = 1:2:size(xs, 2)
-        fprintf(file, [num2str(f(x0s(:, k))') ' a\n']);
-        fprintf(file, [num2str(f(xs(:, k))') ' b\n']);
+        fprintf(file, [num2str(f(x0s(:, k))') ' a ' num2str(x0s(:, k)') '\n']);
+        fprintf(file, [num2str(f(xs(:, k))') ' b ' num2str(xs(:, k)') '\n']);
         fprintf(file, '\n');
     end
     fclose(file);

@@ -164,7 +164,7 @@ function [xsol, fsol, k, flag, dados] = metodo_descida(f, vf, Jf, x0, lx, ux, A,
         return
     end
 
-    if ~isnumeric(opcoes.criterio_parada) || ~any(opcoes.criterio_parada == [1 2])
+    if ~isnumeric(opcoes.criterio_parada) || ~any(opcoes.criterio_parada == [1, 2])
         mostra('opcoes.criterio_parada deve ser 1 ou 2.');
         return
     end
